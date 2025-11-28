@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball Catch Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #scoreBoard {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .ball {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .ball:hover {
+            transform: scale(1.1);
+        }
+
+        .green {
+            background-image: url('image1.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .red {
+            background-image: url('poop.jpeg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 200;
+        }
+
+        #gameOver h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #FF6B6B;
+        }
+
+        #gameOver p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        #restartBtn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #restartBtn:hover {
+            background: #45a049;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 16px;
+            color: #333;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="scoreBoard">Score: <span id="score">0</span></div>
+        
+        <div id="instructions">
+            Click the <span style="color: #228B22; font-weight: bold;">MOZES</span> and avoid the <span style="color: #DC143C; font-weight: bold;">POOP!</span>
+        </div>
+
+        <div id="gameOver">
+            <h1>Game Over!</h1>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let score = 0;
+        let gameActive = true;
+        let ballSpeed = 2;
+        let spawnRate = 1500;
+        let redBallChance = 0.15;
+
+        function createBall() {
+            if (!gameActive) return;
+
+            const ball = document.createElement('div');
+            ball.className = 'ball';
+            
+            const isRed = Math.random() < redBallChance;
+            ball.classList.add(isRed ? 'red' : 'green');
+            
+            const startX = Math.random() * (window.innerWidth - 80);
+            ball.style.left = startX + 'px';
+            ball.style.top = '-80px';
+            
+            gameContainer.appendChild(ball);
+            
+            let ballData = {
+                element: ball,
+                y: -50,
+                isRed: isRed,
+                clicked: false
+            };
+
+            ball.addEventListener('click', () => {
+                if (ballData.clicked || !gameActive) return;
+                
+                ballData.clicked = true;
+                
+                if (ballData.isRed) {
+                    endGame('You clicked the POOP!');
+                } else {
+                    score++;
+                    scoreDisplay.textContent = score;
+                    ball.style.transform = 'scale(0)';
+                    setTimeout(() => ball.remove(), 100);
+                    
+                    if (score % 5 === 0) {
+                        ballSpeed += 0.5;
+                        spawnRate = Math.max(800, spawnRate - 100);
+                    }
+                }
+            });
+
+            animateBall(ballData);
+        }
+
+        function animateBall(ballData) {
+            if (!gameActive) {
+                ballData.element.remove();
+                return;
+            }
+
+            ballData.y += ballSpeed;
+            ballData.element.style.top = ballData.y + 'px';
+
+            if (ballData.y > window.innerHeight) {
+                if (!ballData.isRed && !ballData.clicked) {
+                    endGame('A MOZE hit the ground!');
+                }
+                ballData.element.remove();
+                return;
+            }
+
+            requestAnimationFrame(() => animateBall(ballData));
+        }
+
+        function endGame(reason) {
+            gameActive = false;
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'block';
+            
+            const balls = document.querySelectorAll('.ball');
+            balls.forEach(ball => ball.remove());
+        }
+
+        function restartGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            gameActive = true;
+            ballSpeed = 2;
+            spawnRate = 1500;
+            gameOverScreen.style.display = 'none';
+            
+            startGame();
+        }
+
+        function startGame() {
+            createBall();
+            
+            const spawnInterval = setInterval(() => {
+                if (!gameActive) {
+                    clearInterval(spawnInterval);
+                    return;
+                }
+                createBall();
+            }, spawnRate);
+        }
+
+        restartBtn.addEventListener('click', restartGame);
+
+        startGame();
+    </script>
+</body>
+</html>
